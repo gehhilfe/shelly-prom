@@ -109,8 +109,3 @@ CONFIG_PATH=./config.json go run main.go
 ## License
 
 This project is licensed under the MIT License.
-
-## Author
-
-[shelly-prom GitHub](https://github.com/gehhilfe/ShellyPlug)
-
