@@ -5,7 +5,7 @@ pkgs.buildGoModule {
   version = "0.0.1";
   src = ./.;
 
-  vendorSha256 = pkgs.lib.fakeSha256; # Replace with actual hash after first build
+  vendorHash = "sha256-NnvB20rORPS5QF5enbb5KpWaKZ70ybSgfd7wjk21/Cg="; # Replace with actual hash after first build
 
   meta = with pkgs.lib; {
     description = "Scrapes information from a shelly plug and provides them as prometheus metrics";

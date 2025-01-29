@@ -16,7 +16,12 @@ in {
       default = 50678;
       description = "Port to listen on";
     };
-    shelly_plugs = lib.mkOption {
+    intervalSeconds = lib.mkOption {
+      type = lib.types.int;
+      default = 10;
+      description = "Polling interval in seconds";
+    };
+    shellyPlugs = lib.mkOption {
       type = lib.types.listOf (lib.types.submodule {
         options = {
           name = lib.mkOption {
@@ -82,13 +87,13 @@ in {
     environment.etc."shelly-prom/config.json".text = builtins.toJSON {
       port = cfg.port;
       listen_addr = cfg.listenAddr;
-      interval_seconds = 10;
+      interval_seconds = cfg.intervalSeconds;
       shelly_plugs = map (plug: {
         name = plug.name;
         host = plug.host;
         username = plug.username;
         password = "\${${plug.password}}";
-      }) cfg.shelly_plugs;
+      }) cfg.shellyPlugs;
     };
   };
 }
