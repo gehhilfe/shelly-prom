@@ -88,6 +88,13 @@ func loadConfig() (*Config, error) {
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("config parse error: %w", err)
 	}
+
+	// Expand environment variables for username and password
+	for i, plug := range config.ShellyPlugs {
+		config.ShellyPlugs[i].Username = os.ExpandEnv(plug.Username)
+		config.ShellyPlugs[i].Password = os.ExpandEnv(plug.Password)
+	}
+
 	return &config, nil
 }
 
