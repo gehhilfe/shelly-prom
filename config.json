@@ -1,0 +1,9 @@
+{
+  "port": 50678,
+  "listen_addr": "127.0.0.1",
+  "interval_seconds": 10,	
+  "shelly_plugs": [{
+    "name": "server",
+    "host": "shellyplugsg3-8cbfea9431b8"
+  }]
+}
