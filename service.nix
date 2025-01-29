@@ -70,7 +70,6 @@ in {
         WorkingDirectory = "/var/lib/shelly-prom";
         Restart = "on-failure";
         RestartSec = "5s";
-        EnvironmentFile = "/etc/shelly-prom/config.env";
         # Security settings
         CapabilityBoundingSet = "";
         NoNewPrivileges = true;

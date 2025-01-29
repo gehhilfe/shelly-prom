@@ -43,7 +43,7 @@ var (
 
 func main() {
 	// Load configuration
-	config, err := loadConfig("config.json")
+	config, err := loadConfig()
 	if err != nil {
 		slog.Error("Failed to load config", "error", err)
 		os.Exit(1)
@@ -58,8 +58,28 @@ func main() {
 	http.ListenAndServe(fmt.Sprintf("%s:%d", config.ListenAddr, config.Port), nil)
 }
 
-func loadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+func loadConfig() (*Config, error) {
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		// Fallback paths
+		paths := []string{
+			"/etc/shelly-prom/config.json",
+			"config.json",
+		}
+
+		for _, path := range paths {
+			if _, err := os.Stat(path); err == nil {
+				configPath = path
+				break
+			}
+		}
+
+		if configPath == "" {
+			return nil, fmt.Errorf("no configuration file found")
+		}
+	}
+
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("config read error: %w", err)
 	}
