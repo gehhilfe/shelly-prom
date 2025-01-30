@@ -2,7 +2,7 @@
 
 pkgs.buildGoModule {
   pname = "shelly-prom";
-  version = "0.0.1";
+  version = "0.0.2";
   src = ./.;
 
   vendorHash = "sha256-NnvB20rORPS5QF5enbb5KpWaKZ70ybSgfd7wjk21/Cg="; # Replace with actual hash after first build

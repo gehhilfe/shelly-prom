@@ -39,6 +39,41 @@ var (
 		},
 		[]string{"device", "host"},
 	)
+	freqMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "shelly_plug_frequency_hertz",
+			Help: "Current frequency in hertz",
+		},
+		[]string{"device", "host"},
+	)
+	voltageMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "shelly_plug_voltage_volts",
+			Help: "Current voltage in volts",
+		},
+		[]string{"device", "host"},
+	)
+	currentMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "shelly_plug_current_amperes",
+			Help: "Current in amperes",
+		},
+		[]string{"device", "host"},
+	)
+	temperatureMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "shelly_plug_temperature_celsius",
+			Help: "Current temperature in Celsius",
+		},
+		[]string{"device", "host"},
+	)
+	outputMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "shelly_plug_output",
+			Help: "Output status of the Shelly plug (1 for on, 0 for off)",
+		},
+		[]string{"device", "host"},
+	)
 )
 
 func main() {
@@ -51,6 +86,12 @@ func main() {
 
 	// Register metrics
 	prometheus.MustRegister(powerMetric)
+	prometheus.MustRegister(freqMetric)
+	prometheus.MustRegister(voltageMetric)
+	prometheus.MustRegister(currentMetric)
+	prometheus.MustRegister(temperatureMetric)
+	prometheus.MustRegister(outputMetric)
+
 	// Start monitoring loop
 	go monitorShellyDevices(config)
 
@@ -105,7 +146,7 @@ func monitorShellyDevices(config *Config) {
 	for range ticker.C {
 		for _, plug := range config.ShellyPlugs {
 			go func(plug ShellyPlug) {
-				power, err := getShellyPower(client, plug)
+				err := getMetrics(client, plug)
 				if err != nil {
 					slog.Error("Failed to get power data",
 						"device", plug.Name,
@@ -113,18 +154,16 @@ func monitorShellyDevices(config *Config) {
 						"error", err)
 					return
 				}
-
-				powerMetric.WithLabelValues(plug.Name, plug.Host).Set(power)
 			}(plug)
 		}
 	}
 }
 
-func getShellyPower(client *http.Client, plug ShellyPlug) (float64, error) {
+func getMetrics(client *http.Client, plug ShellyPlug) error {
 	url := fmt.Sprintf("http://%s/rpc/Shelly.GetStatus", plug.Host)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if plug.Username != "" && plug.Password != "" {
@@ -133,23 +172,42 @@ func getShellyPower(client *http.Client, plug ShellyPlug) (float64, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	var status struct {
 		Switch0 struct {
-			Apower float64 `json:"apower"`
+			Output      bool    `json:"output"`
+			Apower      float64 `json:"apower"`
+			Freq        float64 `json:"freq"`
+			Voltage     float64 `json:"voltage"`
+			Current     float64 `json:"current"`
+			Temperature struct {
+				Celsius    float64 `json:"tC"`
+				Fahrenheit float64 `json:"tF"`
+			} `json:"temperature"`
 		} `json:"switch:0"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
-		return 0, err
+		return err
 	}
 
-	return status.Switch0.Apower, nil
+	powerMetric.WithLabelValues(plug.Name, plug.Host).Set(status.Switch0.Apower)
+	freqMetric.WithLabelValues(plug.Name, plug.Host).Set(status.Switch0.Freq)
+	voltageMetric.WithLabelValues(plug.Name, plug.Host).Set(status.Switch0.Voltage)
+	currentMetric.WithLabelValues(plug.Name, plug.Host).Set(status.Switch0.Current)
+	temperatureMetric.WithLabelValues(plug.Name, plug.Host).Set(status.Switch0.Temperature.Celsius)
+	if status.Switch0.Output {
+		outputMetric.WithLabelValues(plug.Name, plug.Host).Set(1)
+	} else {
+		outputMetric.WithLabelValues(plug.Name, plug.Host).Set(0)
+	}
+
+	return nil
 }
